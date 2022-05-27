@@ -62,6 +62,7 @@ if(params.pca && !params.postgatk) {
     if(params.anc == null) error "Parameter --anc is required. Specify ancestor strain"
     if(params.eigen_ld == null) error "Parameter --eigen_ld is required. Specify LD value(s)"
     if(params.snv_vcf == null) error "Parameter --snv_vcf is required. Specify path to SNV-filtered VCF"
+    if(params.regions == null) error "Parameter --regions is required. Specify path to divergent_region_variants.tsv"
 }
 
 if(params.pca && params.postgatk) {
@@ -128,7 +129,7 @@ if (params.help) {
 }
 
 // import the pca module
-include {extract_ancestor_bed; annotate_small_vcf; vcf_to_eigstrat_files; run_eigenstrat_no_outlier_removal; run_eigenstrat_with_outlier_removal; HTML_report_PCA} from './modules/pca.nf'
+include {extract_ancestor_bed; annotate_small_vcf; vcf_to_eigstrat_files; run_eigenstrat_no_outlier_removal; run_eigenstrat_with_outlier_removal; HTML_report_PCA ; mask_divergent} from './modules/pca.nf'
 include {subset_iso_ref_strains; subset_iso_ref_soft; subset_snv; make_small_vcf; convert_tree; quick_tree; plot_tree; haplotype_sweep_IBD; haplotype_sweep_plot; 
     define_divergent_region; prep_variant_coverage; count_variant_coverage; get_species_sheet} from './modules/postgatk.nf'
 
@@ -204,13 +205,20 @@ workflow {
         if(!params.postgatk) {
             snv_vcf = Channel.fromPath("${params.snv_vcf}").combine(Channel.fromPath("${params.snv_vcf}.tbi"))
             pop_strains = Channel.fromPath("${params.pops}")
+            regions = Channel.fromPath("${params.regions}")
         }
 
+        //mask divergent sites
+        snv_vcf
+          .combine(regions) | mask_divergent 
+
+        mask_divergent.out | extract_ancestor_bed
+        
         // extract ancestor
-        snv_vcf | extract_ancestor_bed
+        // snv_vcf | extract_ancestor_bed
 
         // annotate small vcf
-        snv_vcf 
+        mask_divergent.out 
           .combine(extract_ancestor_bed.out)
           .combine(pop_strains) | annotate_small_vcf 
 

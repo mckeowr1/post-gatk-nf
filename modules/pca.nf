@@ -88,6 +88,38 @@ process annotate_small_vcf {
 */
 
 /*
+------------ Mask Divergent Positions
+*/
+
+process mask_divergent{
+  tag{"MASK DIVERGENT SITE"}
+  
+  label 'postgatk'
+  
+  memory 20.GB
+  cpus 4
+  
+  publishDir "${params.output}/DIVMASK", mode: 'copy'
+  
+  input:
+    tuple file(vcf), file(vcfindex), file(regions)
+  
+  
+  output:
+    tuple file("masked.vcf.gz"), file("masked.vcf.gz.tbi")
+  
+  """
+  bcftools view --threads 3 -O z -T ${regions} ${vcf} > masked.vcf.gz  
+  
+  bcftools index --threads 3 --tbi masked.vcf.gz 
+  
+  """
+  
+}
+
+
+
+/*
 ------------ Prepare files for EIGENSTRAT
 */
 
