@@ -58,8 +58,8 @@ if(params.postgatk) {
 
 // check pca inputs
 if(params.pca && !params.postgatk) {
-    if(params.pops == null) error "Parameter --pops is required. Specify path to file"
-    if(params.anc == null) error "Parameter --anc is required. Specify ancestor strain"
+   // if(params.pops == null) error "Parameter --pops is required. Specify path to file"
+   // if(params.anc == null) error "Parameter --anc is required. Specify ancestor strain"
     if(params.eigen_ld == null) error "Parameter --eigen_ld is required. Specify LD value(s)"
     if(params.snv_vcf == null) error "Parameter --snv_vcf is required. Specify path to SNV-filtered VCF"
    // if(params.regions == null) error "Parameter --regions is required. Specify path to divergent_region_variants.tsv"
