@@ -1,0 +1,5 @@
+[[annotation]]
+file="species_genetic_map.bed.gz"
+columns = [4]
+names=["cM"]
+ops=["self"]

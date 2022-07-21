@@ -75,7 +75,42 @@ process annotate_small_vcf {
       """
 }
 
+/*
+------------ Annotate snv vcf with genetic distance
+*/
 
+process annotate_vcf_genetic_distance {
+
+    publishDir "${params.output}/ANNOTATE_VCF", mode: 'copy'
+
+    label 'postgatk'
+    memory 20.GB
+
+    // conda '/projects/b1059/software/conda_envs/vcffixup'
+
+    cpus 1
+
+    input:
+      tuple file(vcf), file(vcfindex)//, val(pop), val(maf), val(sm)
+
+    output:
+      tuple file("Ce330_annotated.vcf.gz"), file("Ce330_annotated.vcf.gz.tbi")
+
+
+      """
+        # get vcfanno files
+        cp ${workflow.projectDir}/input_files/annotations/${params.species}/* .
+        cat ${params.vcfanno_config} | sed 's/species/${params.species}/' > anno_config.toml
+
+
+        vcfanno anno_config.toml ${vcf} |\\
+        awk '\$0 ~ "#" || \$0 !~ "Masked" {print}' |\\
+        vcffixup - |\\
+        bcftools filter -i N_MISSING=0 -Oz -o Ce330_annotated.vcf.gz
+
+        tabix -p vcf Ce330_annotated.vcf.gz
+      """
+}
 
 /*
 ======================================
@@ -189,7 +224,7 @@ process run_eigenstrat_no_outlier_removal {
 
   label 'pca'
   
-  memory 40.GB
+  memory 50.GB
 
   // conda '/projects/b1059/software/conda_envs/vcffixup'
 
@@ -226,7 +261,7 @@ process run_eigenstrat_with_outlier_removal {
   // conda '/projects/b1059/software/conda_envs/vcffixup'
 
   label 'pca'
-  memory 40.GB
+  memory 50.GB
 
   publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/OUTLIER_REMOVAL/", mode: 'copy'
 

@@ -41,7 +41,7 @@ if (params.debug) {
 }
 
 // more params
-params.vcfanno_config = "${workflow.projectDir}/input_files/ANNOTATION_conf.toml"
+params.vcfanno_config = "${workflow.projectDir}/input_files/PCA_ANNOTATION_conf.toml"
 params.eigen_par_outlier_removal = "${workflow.projectDir}/bin/eigpar"
 params.eigen_par_no_removal = "${workflow.projectDir}/bin/eigpar_no_removal"
 params.R_libpath = "/projects/b1059/software/R_lib_3.6.0"
@@ -129,7 +129,7 @@ if (params.help) {
 }
 
 // import the pca module
-include {extract_ancestor_bed; annotate_small_vcf; vcf_to_eigstrat_files; run_eigenstrat_no_outlier_removal; run_eigenstrat_with_outlier_removal; HTML_report_PCA ; mask_divergent} from './modules/pca.nf'
+include {extract_ancestor_bed; annotate_small_vcf; vcf_to_eigstrat_files; run_eigenstrat_no_outlier_removal; run_eigenstrat_with_outlier_removal; HTML_report_PCA ; mask_divergent; annotate_vcf_genetic_distance} from './modules/pca.nf'
 include {subset_iso_ref_strains; subset_iso_ref_soft; subset_snv; make_small_vcf; convert_tree; quick_tree; plot_tree; haplotype_sweep_IBD; haplotype_sweep_plot; 
     define_divergent_region; prep_variant_coverage; count_variant_coverage; get_species_sheet} from './modules/postgatk.nf'
 
@@ -218,7 +218,7 @@ workflow {
         // snv_vcf | extract_ancestor_bed
 
         // annotate small vcf
-        // mask_divergent.out 
+         snv_vcf | annotate_vcf_genetic_distance
         //  .combine(extract_ancestor_bed.out)
         //  .combine(pop_strains) | annotate_small_vcf 
 
@@ -228,7 +228,7 @@ workflow {
 
         // make vcf for eigenstrat - use LD provided
         // annotate_small_vcf.out
-           snv_vcf
+           annotate_vcf_genetic_distance.out
             .combine(ld_range) | vcf_to_eigstrat_files
 
         vcf_to_eigstrat_files.out
