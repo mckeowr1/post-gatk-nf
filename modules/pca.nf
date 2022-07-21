@@ -188,6 +188,8 @@ process run_eigenstrat_no_outlier_removal {
   publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/NO_REMOVAL/", mode: 'copy'
 
   label 'pca'
+  
+  memory 40.GB
 
   // conda '/projects/b1059/software/conda_envs/vcffixup'
 
@@ -224,6 +226,7 @@ process run_eigenstrat_with_outlier_removal {
   // conda '/projects/b1059/software/conda_envs/vcffixup'
 
   label 'pca'
+  memory 40.GB
 
   publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/OUTLIER_REMOVAL/", mode: 'copy'
 
