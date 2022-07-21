@@ -208,27 +208,28 @@ workflow {
             regions = Channel.fromPath("${params.regions}")
         }
 
-        //mask divergent sites
-        snv_vcf
-          .combine(regions) | mask_divergent 
+        // mask divergent sites
+        // snv_vcf
+        //  .combine(regions) | mask_divergent 
 
-        mask_divergent.out | extract_ancestor_bed
+        // mask_divergent.out | extract_ancestor_bed
         
         // extract ancestor
         // snv_vcf | extract_ancestor_bed
 
         // annotate small vcf
-        mask_divergent.out 
-          .combine(extract_ancestor_bed.out)
-          .combine(pop_strains) | annotate_small_vcf 
+        // mask_divergent.out 
+        //  .combine(extract_ancestor_bed.out)
+        //  .combine(pop_strains) | annotate_small_vcf 
 
         ld_range = Channel.of("${params.eigen_ld}")
                       .splitCsv()
                       .flatMap { it }
 
         // make vcf for eigenstrat - use LD provided
-        annotate_small_vcf.out
-          .combine(ld_range) | vcf_to_eigstrat_files
+        // annotate_small_vcf.out
+           snv_vcf
+            .combine(ld_range) | vcf_to_eigstrat_files
 
         vcf_to_eigstrat_files.out
           .combine(Channel.fromPath(params.eigen_par_no_removal)) | run_eigenstrat_no_outlier_removal
