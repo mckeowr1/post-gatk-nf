@@ -163,6 +163,10 @@ process vcf_to_eigstrat_files {
   tag {"PREPARE EIGENSTRAT FILES"}
 
   label 'postgatk'
+  
+  memory 30.GB
+  cpus 6
+  time '3h'
 
   // conda '/projects/b1059/software/conda_envs/vcffixup'
 
@@ -178,8 +182,8 @@ process vcf_to_eigstrat_files {
 
     """
 
-    bcftools view --regions I,II,III,IV,V,X ${vcf} |\\
-    bcftools norm -m + -Oz -o ce_norm.vcf.gz
+    bcftools view -Ou --regions I,II,III,IV,V,X ${vcf} |\\
+    bcftools norm --threads 5 -m + -Oz -o ce_norm.vcf.gz
 
     tabix -p vcf ce_norm.vcf.gz
 
@@ -198,7 +202,7 @@ process vcf_to_eigstrat_files {
     tabix -p vcf PCA.vcf.gz
 
     bcftools view -S sorted_samples.txt -R markers.txt ce_norm.vcf.gz |\\
-    bcftools query -f '%CHROM\\t%CHROM:%POS\\t%cM\\t%POS\\t%REF\\t%ALT\\n' |\\
+    bcftools query -f '%CHROM\\t%CHROM:%POS\\t%POS\\t%REF\\t%ALT\\n' |\\
     sed 's/^III/3/g' |\\
     sed 's/^II/2/g' |\\
     sed 's/^IV/4/g' |\\
