@@ -280,6 +280,9 @@ process vcf_to_eigstrat_files {
 */
 
 process get_passing_variants{
+  tag {"PREPARE EIGENSTRAT FILES"}
+
+  label 'postgatk'
   publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/PASSING", mode: 'copy'
   
   input:
