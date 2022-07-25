@@ -230,10 +230,10 @@ process vcf_to_eigstrat_files {
   publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/INPUTFILES", mode: 'copy'
 
   input:
-    tuple file(vcf), file(vcfindex), val("test_ld")
+    tuple file(vcf), file(vcfindex), val(test_ld)
 
   output:
-    tuple val(test_ld), file("eigenstrat_input.ped"), file("eigenstrat_input.pedsnp"), file("eigenstrat_input.pedind"), file("plink.prune.in"), \
+    tuple file("eigenstrat_input.ped"), file("eigenstrat_input.pedsnp"), file("eigenstrat_input.pedind"), file("plink.prune.in"), \
     file ("markers.txt"), file ("sorted_samples.txt"), file ("PCA.vcf.gz"), file ("PCA.vcf.gz.tbi")
 
 
@@ -312,7 +312,6 @@ process get_passing_variants{
 ------------ Filter VCF to markers 
 */
 
-publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/VCFS", mode: 'copy'
 
 process filter_vcf{
   input: 
@@ -332,11 +331,10 @@ process filter_vcf{
 ------------ Concat Chrom VCFS 
 */
 
-publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/VCFS", mode: 'copy'
 
-process filter_vcf{
+process concat_vcf{
   input: 
-    tuple val("test_ld"), file(marker_vcf), file(index), file(markers_list), file(strains_list)
+    tuple val(test_ld), file(marker_vcf), file(index), file(markers_list), file(strains_list)
   
   output:
     tuple val(test_ld), file(pca_chrom_vcf), file(pca_chrom_index)
