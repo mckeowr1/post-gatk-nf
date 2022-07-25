@@ -23,6 +23,7 @@ if (params.debug) {
     params.anc = "ECA718"
     params.pops = "${workflow.projectDir}/input_files/WI_328_isotype.tsv"
     params.eigen_ld = "0.8,0.6"
+    params.chroms = "I,II"
 } else {
     // Read input
     // params.vcf_folder = ""
@@ -62,12 +63,14 @@ if(params.pca && !params.postgatk) {
    // if(params.anc == null) error "Parameter --anc is required. Specify ancestor strain"
     if(params.eigen_ld == null) error "Parameter --eigen_ld is required. Specify LD value(s)"
     if(params.snv_vcf == null) error "Parameter --snv_vcf is required. Specify path to SNV-filtered VCF"
+    params.chroms = "I,II,III,IV,V,X"
    // if(params.regions == null) error "Parameter --regions is required. Specify path to divergent_region_variants.tsv"
 }
 
 if(params.pca && params.postgatk) {
     if(params.anc == null) error "Parameter --anc is required. Specify ancestor strain"
     if(params.eigen_ld == null) error "Parameter --eigen_ld is required. Specify LD value(s)"
+    params.chroms = "I,II,III,IV,V,X"
 }
 
 // 1kb bins for all chromosomes
@@ -131,7 +134,7 @@ if (params.help) {
 // import the pca module
 include {extract_ancestor_bed; annotate_small_vcf; vcf_to_eigstrat_files; run_eigenstrat_no_outlier_removal; run_eigenstrat_with_outlier_removal; HTML_report_PCA ; mask_divergent; annotate_vcf_genetic_distance} from './modules/pca.nf'
 include {subset_iso_ref_strains; subset_iso_ref_soft; subset_snv; make_small_vcf; convert_tree; quick_tree; plot_tree; haplotype_sweep_IBD; haplotype_sweep_plot; 
-    define_divergent_region; prep_variant_coverage; count_variant_coverage; get_species_sheet} from './modules/postgatk.nf'
+    define_divergent_region; prep_variant_coverage; count_variant_coverage; get_species_sheet; get_passing_variants; filter_vcf} from './modules/postgatk.nf'
 
 
 workflow { 
@@ -218,31 +221,46 @@ workflow {
         // snv_vcf | extract_ancestor_bed
 
         // annotate small vcf
-         snv_vcf | annotate_vcf_genetic_distance
+        // snv_vcf | annotate_vcf_genetic_distance
         //  .combine(extract_ancestor_bed.out)
         //  .combine(pop_strains) | annotate_small_vcf 
 
         ld_range = Channel.of("${params.eigen_ld}")
                       .splitCsv()
                       .flatMap { it }
+        chrom_range = Channel.of("${params.chroms}")
+                      .splitCsv()
+                      .flatMap { it }
 
         // make vcf for eigenstrat - use LD provided
         // annotate_small_vcf.out
-           annotate_vcf_genetic_distance.out
-            .combine(ld_range) | vcf_to_eigstrat_files
+        //   annotate_vcf_genetic_distance.out
+        snv_vcf
+            .combine(ld_range) 
+            .view() | get_passing_variants
+        
+        chrom_range
+            .combine(get_passing_variants.out)
+            .view() | filter_vcf
+            
+        
+        filter_vcf.out
+            .combine(Channel.fromPath("${params.output}/EIGESTRAT/LD_${test_ld}/VCFS"))
+            .view()
+        
+        // Combine all the outputs of get_passing_variant
+        // vcf_to_eigstrat_files.out
+          // .combine(Channel.fromPath(params.eigen_par_no_removal)) | run_eigenstrat_no_outlier_removal
 
-        vcf_to_eigstrat_files.out
-          .combine(Channel.fromPath(params.eigen_par_no_removal)) | run_eigenstrat_no_outlier_removal
-
-        vcf_to_eigstrat_files.out
-          .combine(Channel.fromPath(params.eigen_par_outlier_removal)) | run_eigenstrat_with_outlier_removal
+        // vcf_to_eigstrat_files.out
+          // .combine(Channel.fromPath(params.eigen_par_outlier_removal)) | run_eigenstrat_with_outlier_removal
 
         // run html report
         // not functional quite yet...
-         run_eigenstrat_no_outlier_removal.out
-             .join(run_eigenstrat_with_outlier_removal.out)
-             .combine(Channel.fromPath("${workflow.projectDir}/bin/pca_report.Rmd"))
-             .combine(Channel.fromPath("${workflow.projectDir}/bin/pca_template.Rmd"))| HTML_report_PCA
+         // run_eigenstrat_no_outlier_removal.out
+             // .join(run_eigenstrat_with_outlier_removal.out)
+             // .combine(Channel.fromPath("${workflow.projectDir}/bin/pca_report.Rmd"))
+             // .combine(Channel.fromPath("${workflow.projectDir}/bin/pca_template.Rmd"))| HTML_report_PCA
     }
     
 }

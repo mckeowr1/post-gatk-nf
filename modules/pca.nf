@@ -152,7 +152,64 @@ process mask_divergent{
   
 }
 
+process filter_markers {
 
+  tag {"filter_markers"}
+
+  label 'postgatk'
+  
+  memory 30.GB
+  cpus 6
+  time '3h'
+
+  // conda '/projects/b1059/software/conda_envs/vcffixup'
+
+  // publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/INPUTFILES", mode: 'copy'
+
+  input:
+    tuple file(vcf), file(vcfindex), val("test_ld")
+
+  output:
+    tuple val(chrom), val(test_ld), file("eigenstrat_input.ped"), file("eigenstrat_input.pedsnp"), file("eigenstrat_input.pedind"), file("plink.prune.in"), \
+    file ("markers.txt"), file ("sorted_samples.txt"), file ("PCA.vcf.gz"), file ("PCA.vcf.gz.tbi")
+
+
+    """
+
+    bcftools view -Ou --regions ${chrom} ${vcf} |\\
+    bcftools norm --threads 5 -m + -Oz -o ce_norm.vcf.gz
+
+    tabix -p vcf ce_norm.vcf.gz
+
+    plink --vcf ce_norm.vcf.gz --biallelic-only --set-missing-var-ids @:# --indep-pairwise 50 10 ${test_ld} --allow-extra-chr 
+
+    plink --vcf ce_norm.vcf.gz --biallelic-only --set-missing-var-ids @:# --extract plink.prune.in --geno --recode12 --out eigenstrat_input --allow-extra-chr
+
+    awk -F":" '\$1=\$1' OFS="\\t" plink.prune.in | \\
+    sort -k1,1d -k2,2n > markers.txt
+
+    bcftools query -l ce_norm.vcf.gz |\\
+    sort > sorted_samples.txt 
+
+    bcftools view -S sorted_samples.txt -R markers.txt ce_norm.vcf.gz -Oz -o PCA.vcf.gz
+    
+    tabix -p vcf PCA.vcf.gz
+
+    bcftools view -S sorted_samples.txt -R markers.txt ce_norm.vcf.gz |\\
+    bcftools query -f '%CHROM\\t%CHROM:%POS\\t%POS\\t%REF\\t%ALT\\n' |\\
+    sed 's/^III/3/g' |\\
+    sed 's/^II/2/g' |\\
+    sed 's/^IV/4/g' |\\
+    sed 's/^I/1/g' |\\
+    sed 's/^V/5/g' > eigenstrat_input.pedsnp      
+
+    cut -f-6 -d' ' eigenstrat_input.ped |\\
+    awk '{print 1, \$2, \$3, \$3, \$5, 1}'  > eigenstrat_input.pedind
+
+    echo "rerun"
+    """
+
+}
 
 /*
 ------------ Prepare files for EIGENSTRAT
@@ -215,6 +272,80 @@ process vcf_to_eigstrat_files {
     echo "rerun"
     """
 
+}
+
+
+/*
+------------ Get a list of Markers that pass filtering thresholds 
+*/
+
+process get_passing_variants{
+  publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/PASSING", mode: 'copy'
+  
+  input:
+    tuple file(vcf), file(vcfindex), val("test_ld")
+  
+  output:
+    tuple val(test_ld), file("ce_norm.vcf.gz"), file ("ce_norm.vcf.gz.tbi"), file ("markers.txt"), file ("sorted_samples.txt")
+
+  """
+    bcftools view -Ou --regions I,II,III,IV,V,X ${vcf} |\\
+    bcftools norm --threads 5 -m + -Oz -o ce_norm.vcf.gz
+
+    tabix -p vcf ce_norm.vcf.gz
+
+    plink --vcf ce_norm.vcf.gz --biallelic-only --set-missing-var-ids @:# --indep-pairwise 50 10 ${test_ld} --allow-extra-chr 
+
+    plink --vcf ce_norm.vcf.gz --biallelic-only --set-missing-var-ids @:# --extract plink.prune.in --geno --recode12 --out eigenstrat_input --allow-extra-chr
+
+    awk -F":" '\$1=\$1' OFS="\\t" plink.prune.in | \\
+    sort -k1,1d -k2,2n > markers.txt
+
+    bcftools query -l ce_norm.vcf.gz |\\
+    sort > sorted_samples.txt 
+
+  """
+}
+
+
+/*
+------------ Filter VCF to markers 
+*/
+
+publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/VCFS", mode: 'copy'
+
+process filter_vcf{
+  input: 
+    tuple val("chrom"), val("test_ld"), file(marker_vcf), file(index), file(markers_list), file(strains_list)
+  
+  output:
+    tuple val(test_ld), file(pca_chrom_vcf), file(pca_chrom_index)
+  
+  """
+  bcftools view -Ou --regions ${chrom} ${marker_vcf} |\\
+  bcftools view -S ${strains_list} -R ${markers_list} -Oz -o ${chrom}_${test_ld}_filtered_vcf.gz 
+  tabix -p vcf ${chrom}_${test_ld}_filtered_vcf.gz
+  """
+}
+
+/*
+------------ Concat Chrom VCFS 
+*/
+
+publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/VCFS", mode: 'copy'
+
+process filter_vcf{
+  input: 
+    tuple val("test_ld"), file(marker_vcf), file(index), file(markers_list), file(strains_list)
+  
+  output:
+    tuple val(test_ld), file(pca_chrom_vcf), file(pca_chrom_index)
+  
+  """
+  bcftools view -Ou --regions ${chrom} ${marker_vcf} |\\
+  bcftools view -S ${strains_list} -R ${markers_list} -Oz -o ${chrom}_${test_ld}_filtered_vcf.gz 
+  tabix -p vcf ${chrom}_${test_ld}_filtered_vcf.gz
+  """
 }
 
 
