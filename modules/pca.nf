@@ -326,7 +326,7 @@ process filter_vcf{
     tuple val("chrom"), val("test_ld"), file(marker_vcf), file(index), file(markers_list), file(strains_list)
   
   output:
-    tuple val(test_ld), path("${chrom}_${test_ld}_filtered_vcf.gz"), file("${chrom}_${test_ld}_filtered_vcf.gz")
+    tuple val(test_ld), path("${chrom}_${test_ld}_filtered_vcf.gz"), path("${chrom}_${test_ld}_filtered_vcf.gz.tbi")
   
   """
   bcftools view --regions ${chrom} -Oz -o ${chrom}_vcf.gz ${marker_vcf} 
@@ -342,16 +342,26 @@ process filter_vcf{
 
 
 process concat_vcf{
-  input: 
-    tuple val(test_ld), file(marker_vcf), file(index), file(markers_list), file(strains_list)
+  publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/ALL/", mode: 'copy'
+
+  tag {"PREPARE EIGENSTRAT FILES"}
+
+  label 'postgatk'
   
+  cpus 4 
+  
+  input: 
+    tuple val("test_ld"), path(files)
+    
   output:
-    tuple val(test_ld), file(pca_chrom_vcf), file(pca_chrom_index)
+    tuple val(test_ld), path("${test_ld}_filtered_vcf.gz")
   
   """
-  bcftools view -Ou --regions ${chrom} ${marker_vcf} |\\
-  bcftools view -S ${strains_list} -R ${markers_list} -Oz -o ${chrom}_${test_ld}_filtered_vcf.gz 
-  tabix -p vcf ${chrom}_${test_ld}_filtered_vcf.gz
+  echo ${test_ld}
+  echo ${files}
+  
+  ls | grep _vcf | sort > vcfs.txt
+  bcftools concat -f vcfs.txt --threads 4 -Oz -o ${test_ld}_filtered_vcf.gz 
   """
 }
 

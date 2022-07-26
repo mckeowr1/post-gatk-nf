@@ -132,7 +132,7 @@ if (params.help) {
 }
 
 // import the pca module
-include {get_passing_variants; filter_vcf} from './modules/pca.nf'
+include {get_passing_variants; filter_vcf; concat_vcf} from './modules/pca.nf'
 // include {extract_ancestor_bed; annotate_small_vcf; run_eigenstrat_no_outlier_removal; run_eigenstrat_with_outlier_removal; HTML_report_PCA ; mask_divergent; annotate_vcf_genetic_distance} from './modules/pca.nf'
 include {subset_iso_ref_strains; subset_iso_ref_soft; subset_snv; make_small_vcf; convert_tree; quick_tree; plot_tree; haplotype_sweep_IBD; haplotype_sweep_plot; 
     define_divergent_region; prep_variant_coverage; count_variant_coverage; get_species_sheet} from './modules/postgatk.nf'
@@ -242,7 +242,10 @@ workflow {
         
         chrom_range
            .combine(get_passing_variants.out) | filter_vcf
-            
+        
+        filter_vcf.out
+            .groupTuple(by : 0) | concat_vcf //combine by LD
+            // .view()
         
         // filter_vcf.out
            // .combine(Channel.fromPath("${params.output}/EIGESTRAT/LD_${test_ld}/VCFS"))
