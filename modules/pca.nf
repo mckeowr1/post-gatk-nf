@@ -283,7 +283,7 @@ process get_passing_variants{
   tag {"PREPARE EIGENSTRAT FILES"}
 
   label 'postgatk'
-  publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/PASSING", mode: 'copy'
+  publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/PASSING/", mode: 'copy'
   
   input:
     tuple file(vcf), file(vcfindex), val("test_ld")
@@ -317,15 +317,21 @@ process get_passing_variants{
 
 
 process filter_vcf{
+  publishDir "${params.output}/EIGESTRAT/LD_${test_ld}/VCFs/", mode: 'copy'
+
+  tag {"PREPARE EIGENSTRAT FILES"}
+
+  label 'postgatk'
   input: 
     tuple val("chrom"), val("test_ld"), file(marker_vcf), file(index), file(markers_list), file(strains_list)
   
   output:
-    tuple val(test_ld), file(pca_chrom_vcf), file(pca_chrom_index)
+    tuple val(test_ld), path("${chrom}_${test_ld}_filtered_vcf.gz"), file("${chrom}_${test_ld}_filtered_vcf.gz")
   
   """
-  bcftools view -Ou --regions ${chrom} ${marker_vcf} |\\
-  bcftools view -S ${strains_list} -R ${markers_list} -Oz -o ${chrom}_${test_ld}_filtered_vcf.gz 
+  bcftools view --regions ${chrom} -Oz -o ${chrom}_vcf.gz ${marker_vcf} 
+  tabix -p vcf ${chrom}_vcf.gz
+  bcftools view -S ${strains_list} -R ${markers_list} -Oz -o ${chrom}_${test_ld}_filtered_vcf.gz ${chrom}_vcf.gz
   tabix -p vcf ${chrom}_${test_ld}_filtered_vcf.gz
   """
 }

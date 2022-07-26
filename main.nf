@@ -47,7 +47,7 @@ params.eigen_par_outlier_removal = "${workflow.projectDir}/bin/eigpar"
 params.eigen_par_no_removal = "${workflow.projectDir}/bin/eigpar_no_removal"
 params.R_libpath = "/projects/b1059/software/R_lib_3.6.0"
 params.snps = '--snps-only'
-
+params.chroms = "I,II,III,IV,V,X"
 
 // Note that params.species is set in the config to be c_elegans (default)
 if ( params.species==null ) error "Parameter --species is required. Please select c_elegans, c_briggsae, or c_tropicalis."
@@ -63,14 +63,12 @@ if(params.pca && !params.postgatk) {
    // if(params.anc == null) error "Parameter --anc is required. Specify ancestor strain"
     if(params.eigen_ld == null) error "Parameter --eigen_ld is required. Specify LD value(s)"
     if(params.snv_vcf == null) error "Parameter --snv_vcf is required. Specify path to SNV-filtered VCF"
-    params.chroms = "I,II,III,IV,V,X"
    // if(params.regions == null) error "Parameter --regions is required. Specify path to divergent_region_variants.tsv"
 }
 
 if(params.pca && params.postgatk) {
     if(params.anc == null) error "Parameter --anc is required. Specify ancestor strain"
     if(params.eigen_ld == null) error "Parameter --eigen_ld is required. Specify LD value(s)"
-    params.chroms = "I,II,III,IV,V,X"
 }
 
 // 1kb bins for all chromosomes
@@ -113,7 +111,9 @@ nextflow main.nf -profile quest --vcf=hard-filtered.vcf --sample_sheet=sample_sh
     --vcf_folder         Path to folder containing hard and soft VCF              ${params.vcf_folder}
     --sample_sheet       TSV with column iso-ref strain, bam, bai. no header      ${params.sample_sheet}
     --output             (Optional) output folder name                            ${params.output}
- 
+    --profile            (Optional) output folder name                            ${params.pca}
+    --eigan_ld           (Optional) output folder name                            ${params.eigen_ld}
+
     username                                                                      ${"whoami".execute().in.text}
 
     HELP: http://andersenlab.org/dry-guide/pipeline-postGATK   
@@ -132,9 +132,10 @@ if (params.help) {
 }
 
 // import the pca module
-include {extract_ancestor_bed; annotate_small_vcf; vcf_to_eigstrat_files; run_eigenstrat_no_outlier_removal; run_eigenstrat_with_outlier_removal; HTML_report_PCA ; mask_divergent; annotate_vcf_genetic_distance} from './modules/pca.nf'
+include {get_passing_variants; filter_vcf} from './modules/pca.nf'
+// include {extract_ancestor_bed; annotate_small_vcf; run_eigenstrat_no_outlier_removal; run_eigenstrat_with_outlier_removal; HTML_report_PCA ; mask_divergent; annotate_vcf_genetic_distance} from './modules/pca.nf'
 include {subset_iso_ref_strains; subset_iso_ref_soft; subset_snv; make_small_vcf; convert_tree; quick_tree; plot_tree; haplotype_sweep_IBD; haplotype_sweep_plot; 
-    define_divergent_region; prep_variant_coverage; count_variant_coverage; get_species_sheet; get_passing_variants; filter_vcf} from './modules/postgatk.nf'
+    define_divergent_region; prep_variant_coverage; count_variant_coverage; get_species_sheet} from './modules/postgatk.nf'
 
 
 workflow { 
@@ -228,6 +229,7 @@ workflow {
         ld_range = Channel.of("${params.eigen_ld}")
                       .splitCsv()
                       .flatMap { it }
+
         chrom_range = Channel.of("${params.chroms}")
                       .splitCsv()
                       .flatMap { it }
@@ -236,17 +238,15 @@ workflow {
         // annotate_small_vcf.out
         //   annotate_vcf_genetic_distance.out
         snv_vcf
-            .combine(ld_range) 
-            .view() | get_passing_variants
+          .combine(ld_range) | get_passing_variants
         
         chrom_range
-            .combine(get_passing_variants.out)
-            .view() | filter_vcf
+           .combine(get_passing_variants.out) | filter_vcf
             
         
-        filter_vcf.out
-            .combine(Channel.fromPath("${params.output}/EIGESTRAT/LD_${test_ld}/VCFS"))
-            .view()
+        // filter_vcf.out
+           // .combine(Channel.fromPath("${params.output}/EIGESTRAT/LD_${test_ld}/VCFS"))
+           // .view()
         
         // Combine all the outputs of get_passing_variant
         // vcf_to_eigstrat_files.out
