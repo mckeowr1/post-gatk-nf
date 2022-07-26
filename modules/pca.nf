@@ -297,9 +297,9 @@ process get_passing_variants{
 
     tabix -p vcf ce_norm.vcf.gz
 
-    plink --vcf ce_norm.vcf.gz --biallelic-only --set-missing-var-ids @:# --indep-pairwise 50 10 ${test_ld} --allow-extra-chr 
+    plink --vcf ce_norm.vcf.gz --snps-only --biallelic-only --set-missing-var-ids @:# --indep-pairwise 50 10 ${test_ld} --allow-extra-chr 
 
-    plink --vcf ce_norm.vcf.gz --biallelic-only --set-missing-var-ids @:# --extract plink.prune.in --geno --recode12 --out eigenstrat_input --allow-extra-chr
+    plink --vcf ce_norm.vcf.gz --snps-only --biallelic-only --set-missing-var-ids @:# --extract plink.prune.in --geno --recode12 --out eigenstrat_input --allow-extra-chr
 
     awk -F":" '\$1=\$1' OFS="\\t" plink.prune.in | \\
     sort -k1,1d -k2,2n > markers.txt
@@ -331,7 +331,7 @@ process filter_vcf{
   """
   bcftools view --regions ${chrom} -Oz -o ${chrom}_vcf.gz ${marker_vcf} 
   tabix -p vcf ${chrom}_vcf.gz
-  bcftools view -S ${strains_list} -R ${markers_list} -Oz -o ${chrom}_${test_ld}_filtered_vcf.gz ${chrom}_vcf.gz
+  bcftools view -i 'TYPE="snp"' -S ${strains_list} -R ${markers_list} -Oz -o ${chrom}_${test_ld}_filtered_vcf.gz ${chrom}_vcf.gz
   tabix -p vcf ${chrom}_${test_ld}_filtered_vcf.gz
   """
 }
