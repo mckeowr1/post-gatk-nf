@@ -134,10 +134,11 @@ process vcf_to_eigstrat_files {
 
     tabix -p vcf ce_norm.vcf.gz
 
-    plink --vcf ce_norm.vcf.gz --snps-only --biallelic-only --set-missing-var-ids @:# --indep-pairwise 50 10 ${test_ld} --allow-extra-chr --make-bed
+    plink --vcf ce_norm.vcf.gz --snps-only --biallelic-only --set-missing-var-ids @:# --indep-pairwise 50 10 ${test_ld} --allow-extra-chr 
 
-
-    plink --vcf ce_norm.vcf.gz --biallelic-only --set-missing-var-ids @:# --extract plink.prune.in --exclude singleton_ids.txt --geno 0 --recode12 --out eigenstrat_input --allow-extra-chr
+    plink --vcf ce_norm.vcf.gz --biallelic-only --set-missing-var-ids @:# --extract plink.prune.in --exclude singleton_ids.txt --geno 0 --recode12 --out eigenstrat_input --allow-extra-chr 
+    
+    plink --file eigenstart_input --make-bed
 
 
     awk -F":" '\$1=\$1' OFS="\\t" plink.prune.in | \\
@@ -187,7 +188,7 @@ process run_eigenstrat_no_outlier_removal {
 
 
     """
-
+    echo ${test_ld}
     smartpca -p ${eigenparameters} > logfile_no_removal.txt
 
     sed -n -e '/Tracy/,\$p' logfile_no_removal.txt |\
@@ -223,6 +224,7 @@ process run_eigenstrat_with_outlier_removal {
 
    
     """
+    echo ${test_ld}
     bash ${workflow.projectDir}/bin/edit_outlier_param.sh -f ${eigenparameters} -n ${num_outliers}
 
     smartpca -p outlier_eigpar > logfile_outlier.txt
