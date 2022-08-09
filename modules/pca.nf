@@ -138,7 +138,7 @@ process vcf_to_eigstrat_files {
 
     plink --vcf ce_norm.vcf.gz --biallelic-only --set-missing-var-ids @:# --extract plink.prune.in --exclude singleton_ids.txt --geno 0 --recode12 --out eigenstrat_input --allow-extra-chr 
     
-    plink --file eigenstart_input --make-bed
+    plink --file eigenstrat_input --make-bed
 
 
     awk -F":" '\$1=\$1' OFS="\\t" plink.prune.in | \\
