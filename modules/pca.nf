@@ -216,7 +216,7 @@ process run_eigenstrat_with_outlier_removal {
 
   input:
     tuple val("test_ld"), file("eigenstrat_input.ped"), file("eigenstrat_input.pedsnp"), file("eigenstrat_input.pedind"), file("plink.prune.in"), \
-    file ("markers.txt"), file ("sorted_samples.txt"), file(eigenparameters), val("num_outliers")
+    file ("markers.txt"), file ("sorted_samples.txt"), file(eigenparameters), val("num_outliers"), val("out_thresh")
 
   output:
     tuple val(test_ld), file("eigenstrat_outliers_removed.evac"), file("eigenstrat_outliers_removed.eval"), file("logfile_outlier.txt"), \
@@ -225,7 +225,7 @@ process run_eigenstrat_with_outlier_removal {
    
     """
     echo ${test_ld}
-    bash ${workflow.projectDir}/bin/edit_outlier_param.sh -f ${eigenparameters} -n ${num_outliers}
+    bash ${workflow.projectDir}/bin/edit_outlier_param.sh -f ${eigenparameters} -n ${num_outliers} -t ${out_thresh}
 
     smartpca -p outlier_eigpar > logfile_outlier.txt
 
