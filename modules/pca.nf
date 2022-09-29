@@ -134,10 +134,11 @@ process vcf_to_eigstrat_files {
 
     tabix -p vcf ce_norm.vcf.gz
 
-    plink --vcf ce_norm.vcf.gz --snps-only --biallelic-only --set-missing-var-ids @:# --indep-pairwise 50 10 ${test_ld} --allow-extra-chr --make-bed
+    plink --vcf ce_norm.vcf.gz --snps-only --biallelic-only --set-missing-var-ids @:# --indep-pairwise 50 10 ${test_ld} --allow-extra-chr 
 
-
-    plink --vcf ce_norm.vcf.gz --biallelic-only --set-missing-var-ids @:# --extract plink.prune.in --exclude singleton_ids.txt --geno 0 --recode12 --out eigenstrat_input --allow-extra-chr
+    plink --vcf ce_norm.vcf.gz --biallelic-only --set-missing-var-ids @:# --extract plink.prune.in --exclude singleton_ids.txt --geno 0 --recode12 --out eigenstrat_input --allow-extra-chr 
+    
+    plink --file eigenstrat_input --make-bed --allow-extra-chr
 
 
     awk -F":" '\$1=\$1' OFS="\\t" plink.prune.in | \\
@@ -187,7 +188,7 @@ process run_eigenstrat_no_outlier_removal {
 
 
     """
-
+    echo ${test_ld}
     smartpca -p ${eigenparameters} > logfile_no_removal.txt
 
     sed -n -e '/Tracy/,\$p' logfile_no_removal.txt |\
@@ -215,7 +216,7 @@ process run_eigenstrat_with_outlier_removal {
 
   input:
     tuple val("test_ld"), file("eigenstrat_input.ped"), file("eigenstrat_input.pedsnp"), file("eigenstrat_input.pedind"), file("plink.prune.in"), \
-    file ("markers.txt"), file ("sorted_samples.txt"), file(eigenparameters), val("num_outliers")
+    file ("markers.txt"), file ("sorted_samples.txt"), file(eigenparameters), val("num_outliers"), val("out_thresh")
 
   output:
     tuple val(test_ld), file("eigenstrat_outliers_removed.evac"), file("eigenstrat_outliers_removed.eval"), file("logfile_outlier.txt"), \
@@ -223,7 +224,8 @@ process run_eigenstrat_with_outlier_removal {
 
    
     """
-    bash ${workflow.projectDir}/bin/edit_outlier_param.sh -f ${eigenparameters} -n ${num_outliers}
+    echo ${test_ld}
+    bash ${workflow.projectDir}/bin/edit_outlier_param.sh -f ${eigenparameters} -n ${num_outliers} -t ${out_thresh}
 
     smartpca -p outlier_eigpar > logfile_outlier.txt
 

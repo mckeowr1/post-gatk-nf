@@ -38,6 +38,7 @@ if (params.debug) {
     params.pops = null
     params.eigen_ld = null
     params.snv_vcf = null
+    params.outlier_threshold = 6.0 //default smartPCA outliersigmathresh
 }
 
 // more params
@@ -232,10 +233,14 @@ workflow {
         outlier_its = Channel.of("${params.outlier_iterations}")
                         .splitCsv()
                         .flatMap{ it }
+        out_thres = Channel.of("${params.outlier_threshold}")
+                        .splitCsv()
+                        .flatMap{ it }
         
         vcf_to_eigstrat_files.out
           .combine(Channel.fromPath(params.eigen_par_outlier_removal)) 
-          .combine(outlier_its) | run_eigenstrat_with_outlier_removal
+          .combine(outlier_its)
+          .combine(out_thres) | run_eigenstrat_with_outlier_removal
 
         // run html report
         // not functional quite yet...
